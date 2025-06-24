@@ -64,6 +64,29 @@
       padding: 8px;
       text-align: center;
     }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    ul li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      background-color: #2a2a2a;
+      padding: 6px 10px;
+      border-radius: 5px;
+    }
+    ul li button {
+      background-color: #fff;
+      color: #121212;
+      border: none;
+      padding: 2px 6px;
+      font-size: 12px;
+      margin-left: 4px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
     .hidden {
       display: none;
     }
@@ -87,7 +110,39 @@
 </head>
 <body>
 <div class="container">
-  <div id="previewPage">
+  <div id="page1">
+    <h2>Standard Paint Estimator</h2>
+    <label>Unit of Measurement</label>
+    <select id="unitSelect">
+      <option value="meters">Meters</option>
+      <option value="feet">Feet</option>
+    </select>
+
+    <label>Project Type</label>
+    <input type="radio" name="project" value="new"> New Construction
+    <input type="radio" name="project" value="renovation"> Renovation
+
+    <div id="skimmingGroup" class="hidden">
+      <label id="skimmingLabel">Is skimming required?</label>
+      <input type="radio" name="skimming" value="yes"> Yes
+      <input type="radio" name="skimming" value="no"> No
+    </div>
+
+    <label>Wall Name</label>
+    <input type="text" id="wallName" placeholder="e.g., Kitchen Wall">
+    <button onclick="addWallName()">Add Wall</button>
+    <ul id="wallList"></ul>
+    <button onclick="goToPage2()">Next</button>
+  </div>
+
+  <div id="page2" class="hidden">
+    <h2>Wall Dimensions Entry</h2>
+    <div id="wallDimensionForm"></div>
+    <button onclick="showPreviewTable()">View Added Dimensions</button>
+    <button onclick="goBackToPage1()">← Back</button>
+  </div>
+
+  <div id="previewPage" class="hidden">
     <h2>Wall Input Summary</h2>
     <table id="previewTable">
       <thead>
@@ -100,16 +155,7 @@
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td>Sample Wall</td>
-          <td>4.00 m</td>
-          <td>3.00 m</td>
-          <td>1</td>
-          <td>2</td>
-          <td>–</td>
-        </tr>
-      </tbody>
+      <tbody></tbody>
     </table>
 
     <label>Full Name</label>
@@ -120,49 +166,249 @@
 
     <p><strong>Payment Amount:</strong> KES 100</p>
 
-    <button onclick="goToQuotation()">Pay and Get Quotation</button>
+    <button onclick="startPayment()">Request Quotation</button>
+    <button onclick="goBackToPage2()">← Back</button>
   </div>
 
   <div id="resultSection" class="hidden">
     <h2>Paint Estimation Report</h2>
-    <div id="result">
-      <p><strong>This is your generated quotation after payment.</strong></p>
-      <!-- In a full app, insert your results from calculations here -->
-    </div>
+    <div id="result"></div>
     <button onclick="window.print()">🖨️ Print</button>
+    <button onclick="goBackToPreview()">← Back</button>
   </div>
 </div>
 
-<!-- Paystack Script -->
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <script>
-  function goToQuotation() {
-    const amountKES = 100;
+  const FEET_TO_METERS = 0.3048;
+  const UNDERCOAT_SPREAD = 9.0, TOPCOAT_SPREAD = 9.0, TOPCOAT_COATS = 2;
+  const SKIM_COAT_NEW = 16.0, SKIM_COAT_RENO = 20.0;
+
+  let wallNames = [], wallData = [], currentWallIndex = 0;
+  let projectType = "", skimming = "", unit = "meters";
+
+  document.querySelectorAll('input[name="project"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('skimmingGroup').classList.remove('hidden');
+    });
+  });
+
+  function addWallName() {
+    const input = document.getElementById("wallName");
+    const name = input.value.trim();
+    if (!name) return alert("Wall name cannot be empty.");
+    if (wallNames.includes(name)) return alert("Wall name already exists.");
+    wallNames.push(name);
+    renderWallList();
+    input.value = "";
+  }
+
+  function renderWallList() {
+    const list = document.getElementById("wallList");
+    list.innerHTML = "";
+    wallNames.forEach((name, i) => {
+      const li = document.createElement("li");
+      li.innerHTML = `${name}
+        <span>
+          <button onclick="editWall(${i})">✏️</button>
+          <button onclick="removeWall(${i})">🗑️</button>
+        </span>`;
+      list.appendChild(li);
+    });
+  }
+
+  function removeWall(index) {
+    wallNames.splice(index, 1);
+    wallData.splice(index, 1);
+    renderWallList();
+  }
+
+  function goToPage2() {
+    unit = document.getElementById("unitSelect").value;
+    projectType = document.querySelector("input[name='project']:checked")?.value;
+    skimming = document.querySelector("input[name='skimming']:checked")?.value;
+    if (!unit || !projectType || !skimming || wallNames.length === 0) {
+      alert("Please complete all fields and add at least one wall.");
+      return;
+    }
+    document.getElementById("page1").classList.add("hidden");
+    document.getElementById("page2").classList.remove("hidden");
+    showWallForm();
+  }
+
+  function showWallForm() {
+    if (currentWallIndex >= wallNames.length) return;
+    const name = wallNames[currentWallIndex];
+    const unitLabel = unit === "meters" ? "m" : "ft";
+    document.getElementById("wallDimensionForm").innerHTML = `
+      <h3>Enter dimensions for: <span>${name}</span></h3>
+      <label>Length (${unitLabel})</label>
+      <input type="number" id="length" min="0" required>
+      <label>Height (${unitLabel})</label>
+      <input type="number" id="height" min="0" required>
+      <label>Number of Doors</label>
+      <input type="number" id="doorCount" value="0" min="0" onchange="toggleFields('door')">
+      <div id="doorFields" class="hidden">
+        <label>Average Door Width (${unitLabel})</label>
+        <input type="number" id="doorWidth" min="0">
+        <label>Average Door Height (${unitLabel})</label>
+        <input type="number" id="doorHeight" min="0">
+      </div>
+      <label>Number of Windows</label>
+      <input type="number" id="windowCount" value="0" min="0" onchange="toggleFields('window')">
+      <div id="windowFields" class="hidden">
+        <label>Average Window Width (${unitLabel})</label>
+        <input type="number" id="windowWidth" min="0">
+        <label>Average Window Height (${unitLabel})</label>
+        <input type="number" id="windowHeight" min="0">
+      </div>
+      <button onclick="saveWallData()">Add Dimensions</button>
+    `;
+  }
+
+  function toggleFields(type) {
+    const count = parseInt(document.getElementById(`${type}Count`).value);
+    document.getElementById(`${type}Fields`).classList.toggle("hidden", count === 0);
+  }
+
+  function saveWallData() {
+    const conv = unit === "feet" ? FEET_TO_METERS : 1;
+    const length = parseFloat(document.getElementById("length").value) * conv;
+    const height = parseFloat(document.getElementById("height").value) * conv;
+    const dCount = parseInt(document.getElementById("doorCount").value) || 0;
+    const dW = dCount > 0 ? parseFloat(document.getElementById("doorWidth").value) * conv : 0;
+    const dH = dCount > 0 ? parseFloat(document.getElementById("doorHeight").value) * conv : 0;
+    const wCount = parseInt(document.getElementById("windowCount").value) || 0;
+    const wW = wCount > 0 ? parseFloat(document.getElementById("windowWidth").value) * conv : 0;
+    const wH = wCount > 0 ? parseFloat(document.getElementById("windowHeight").value) * conv : 0;
+
+    if (dCount > 0 && (!dW || !dH)) return alert("Please enter door dimensions.");
+    if (wCount > 0 && (!wW || !wH)) return alert("Please enter window dimensions.");
+
+    wallData[currentWallIndex] = {
+      name: wallNames[currentWallIndex],
+      length, height, doors: dCount, doorW: dW, doorH: dH,
+      windows: wCount, windowW: wW, windowH: wH
+    };
+
+    currentWallIndex++;
+    if (currentWallIndex < wallNames.length) {
+      showWallForm();
+    } else {
+      showPreviewTable();
+    }
+  }
+
+  function showPreviewTable() {
+    document.getElementById("page2").classList.add("hidden");
+    document.getElementById("previewPage").classList.remove("hidden");
+    const body = document.querySelector("#previewTable tbody");
+    body.innerHTML = "";
+    wallNames.forEach((name, i) => {
+      const w = wallData[i] || {};
+      body.innerHTML += `
+        <tr>
+          <td>${name}</td>
+          <td>${w.length ? w.length.toFixed(2) + " m" : "-"}</td>
+          <td>${w.height ? w.height.toFixed(2) + " m" : "-"}</td>
+          <td>${w.doors || 0}</td>
+          <td>${w.windows || 0}</td>
+          <td>
+            <button onclick="editWall(${i})">Edit</button>
+            <button onclick="deleteWall(${i})">Delete</button>
+          </td>
+        </tr>`;
+    });
+  }
+
+  function startPayment() {
     const email = document.getElementById("userEmail").value.trim();
     const fullName = document.getElementById("fullName").value.trim();
-
-    if (!fullName || !email) {
+    if (!email || !fullName) {
       alert("Please enter your name and email.");
       return;
     }
 
-    var handler = PaystackPop.setup({
-      key: 'pk_test_4267eb88afba104984e24dd30e98880042131088',
+    const handler = PaystackPop.setup({
+      key: 'pk_test_4267eb88afba104984e24dd30e98880042131088', // TEST key
       email: email,
-      amount: amountKES * 100,
+      amount: 100 * 100,
       currency: 'KES',
-      channels: ['mobile_money'],
+      metadata: {
+        custom_fields: [{ display_name: "Full Name", variable_name: "full_name", value: fullName }]
+      },
       callback: function(response) {
         document.getElementById("previewPage").classList.add("hidden");
         document.getElementById("resultSection").classList.remove("hidden");
-        alert('Payment Successful! Ref: ' + response.reference);
+        calculateResults();
+        alert("Payment successful. Ref: " + response.reference);
       },
       onClose: function() {
-        alert('Transaction cancelled.');
+        alert("Payment cancelled.");
       }
     });
 
     handler.openIframe();
+  }
+
+  function calculateResults() {
+    let html = `<table><thead>
+      <tr><th>Wall</th><th>Net Area (m²)</th><th>Skim Coat</th><th>Undercoat</th><th>Topcoat</th></tr>
+    </thead><tbody>`;
+
+    let totalArea = 0, totalSkim = 0, totalUndercoat = 0, totalTopcoat = 0;
+
+    wallData.forEach(w => {
+      const sub = (w.doors * w.doorW * w.doorH) + (w.windows * w.windowW * w.windowH);
+      const area = (w.length * w.height) - sub;
+
+      const skim = (skimming === "yes")
+        ? (projectType === "new"
+            ? area / SKIM_COAT_NEW
+            : area / SKIM_COAT_RENO)
+        : 0;
+
+      const under = area / UNDERCOAT_SPREAD;
+      const top = (area * TOPCOAT_COATS) / TOPCOAT_SPREAD;
+
+      totalArea += area;
+      totalSkim += skim;
+      totalUndercoat += under;
+      totalTopcoat += top;
+
+      html += `<tr>
+        <td>${w.name}</td>
+        <td>${area.toFixed(2)}</td>
+        <td>${skim > 0 ? skim.toFixed(2) + " bags" : "-"}</td>
+        <td>${under.toFixed(2)} L</td>
+        <td>${top.toFixed(2)} L</td>
+      </tr>`;
+    });
+
+    html += `</tbody><tfoot>
+      <tr><th>Total</th>
+      <th>${totalArea.toFixed(2)}</th>
+      <th>${totalSkim > 0 ? totalSkim.toFixed(2) + " bags" : "-"}</th>
+      <th>${totalUndercoat.toFixed(2)} L</th>
+      <th>${totalTopcoat.toFixed(2)} L</th></tr>
+    </tfoot></table>`;
+
+    document.getElementById("result").innerHTML = html;
+  }
+
+  function goBackToPage1() {
+    document.getElementById("page2").classList.add("hidden");
+    document.getElementById("page1").classList.remove("hidden");
+  }
+
+  function goBackToPage2() {
+    document.getElementById("previewPage").classList.add("hidden");
+    document.getElementById("page2").classList.remove("hidden");
+  }
+
+  function goBackToPreview() {
+    document.getElementById("resultSection").classList.add("hidden");
+    document.getElementById("previewPage").classList.remove("hidden");
   }
 </script>
 </body>
