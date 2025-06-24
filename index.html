@@ -1,9 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Standard Paint Estimator</title>
+  <script src="https://js.paystack.co/v1/inline.js"></script>
   <style>
     body {
       background: #121212;
@@ -26,390 +26,201 @@
     h2, h3 {
       text-align: center;
     }
-    h3 span {
-      color: #00ff66;
-    }
-    input, select, button, textarea {
+    input, select, button {
       width: 100%;
       padding: 12px;
       margin: 6px 0 12px 0;
       background: #2a2a2a;
       color: #fff;
       border: 1px solid #444;
-      box-sizing: border-box;
       font-size: 16px;
       border-radius: 4px;
     }
-    input:focus, select:focus, textarea:focus, button:focus {
-      outline: none;
-      border: 2px solid #00ff66;
-      box-shadow: 0 0 5px #00ff66;
-    }
-    input[type="radio"] {
-      width: auto;
-      margin-right: 10px;
-    }
-    label {
-      font-weight: bold;
-      margin-top: 10px;
-      display: block;
-    }
-    table {
-      width: 100%;
-      margin-top: 10px;
-      border-collapse: collapse;
-    }
-    th, td {
-      border: 1px solid #555;
-      padding: 8px;
-      text-align: center;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-    ul li {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 4px;
-      background-color: #2a2a2a;
-      padding: 6px 10px;
-      border-radius: 5px;
-    }
-    ul li button {
-      background-color: #fff;
-      color: #121212;
-      border: none;
-      padding: 2px 6px;
-      font-size: 12px;
-      margin-left: 4px;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    .hidden {
-      display: none;
-    }
-    @media print {
-      button, .container > div:not(#resultSection) {
-        display: none;
-      }
-    }
-    @media (max-width: 600px) {
-      .container {
-        padding: 10px;
-      }
-      th, td {
-        font-size: 12px;
-      }
-      button {
-        font-size: 14px;
-      }
-    }
+    .hidden { display: none; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    table { width: 100%; margin-top: 10px; border-collapse: collapse; }
+    th, td { border: 1px solid #555; padding: 8px; text-align: center; }
+    ul { list-style: none; padding: 0; }
+    ul li { display: flex; justify-content: space-between; background: #2a2a2a; padding: 6px 10px; border-radius: 5px; margin-bottom: 4px; }
+    ul li button { background: #fff; color: #000; font-size: 12px; padding: 4px 6px; border: none; cursor: pointer; border-radius: 4px; }
   </style>
 </head>
 <body>
 <div class="container">
+  <!-- Page 1: Name, Email, Project Type -->
   <div id="page1">
-    <h2>Standard Paint Estimator</h2>
-    <label>Unit of Measurement</label>
-    <select id="unitSelect">
+    <h2>Paint Estimator</h2>
+    <label for="name">Full Name</label>
+    <input type="text" id="fullName" placeholder="Enter your name"><label for="email">Email Address</label>
+<input type="email" id="email" placeholder="Enter your email">
+
+<label>Project Type</label>
+<select id="projectType">
+  <option value="">Select type</option>
+  <option value="new">New Construction</option>
+  <option value="renovation">Renovation</option>
+</select>
+
+<div id="skimmingGroup" class="hidden">
+  <label>Is Skimming Required?</label>
+  <select id="skimming">
+    <option value="yes">Yes</option>
+    <option value="no">No</option>
+  </select>
+</div>
+
+<button onclick="goToPage2()">Next</button>
+
+  </div>  <!-- Page 2: Add Walls -->  <div id="page2" class="hidden">
+    <h2>Add Walls</h2>
+    <input type="text" id="wallName" placeholder="e.g. Kitchen Wall">
+    <button onclick="addWall()">Add Wall</button>
+    <ul id="wallList"></ul>
+    <button onclick="goToPage3()">Next</button>
+  </div>  <!-- Page 3: Wall Dimensions -->  <div id="page3" class="hidden">
+    <h2>Enter Wall Dimensions</h2>
+    <label>Unit</label>
+    <select id="unit">
       <option value="meters">Meters</option>
       <option value="feet">Feet</option>
     </select>
-
-    <label>Project Type</label>
-    <input type="radio" name="project" value="new"> New Construction
-    <input type="radio" name="project" value="renovation"> Renovation
-
-    <div id="skimmingGroup" class="hidden">
-      <label id="skimmingLabel">Is skimming required?</label>
-      <input type="radio" name="skimming" value="yes"> Yes
-      <input type="radio" name="skimming" value="no"> No
-    </div>
-
-    <label>Wall Name</label>
-    <input type="text" id="wallName" placeholder="e.g., Kitchen Wall">
-    <button onclick="addWallName()">Add Wall</button>
-    <ul id="wallList"></ul>
-    <button onclick="goToPage2()">Next</button>
-  </div>
-
-  <div id="page2" class="hidden">
-    <h2>Wall Dimensions Entry</h2>
     <div id="wallDimensionForm"></div>
-    <button onclick="showPreviewTable()">View Added Dimensions</button>
-    <button onclick="goBackToPage1()">← Back</button>
-  </div>
-
-  <div id="previewPage" class="hidden">
-    <h2>Wall Input Summary</h2>
-    <table id="previewTable">
-      <thead>
-        <tr>
-          <th>Wall</th>
-          <th>Length</th>
-          <th>Height</th>
-          <th>Doors</th>
-          <th>Windows</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <label>Full Name</label>
-    <input type="text" id="fullName" placeholder="Enter your name">
-
-    <label>Email Address</label>
-    <input type="email" id="userEmail" placeholder="Enter your email">
-
-    <p><strong>Payment Amount:</strong> KES 100</p>
-
-    <button onclick="startPayment()">Request Quotation</button>
-    <button onclick="goBackToPage2()">← Back</button>
-  </div>
-
-  <div id="resultSection" class="hidden">
-    <h2>Paint Estimation Report</h2>
+    <button onclick="showPreview()">Next</button>
+  </div>  <!-- Page 4: Preview -->  <div id="previewPage" class="hidden">
+    <h2>Preview</h2>
+    <table id="previewTable"><thead><tr><th>Wall</th><th>Length</th><th>Height</th><th>Doors</th><th>Windows</th></tr></thead><tbody></tbody></table>
+    <button onclick="requestQuotation()">Request Quotation (KES 100)</button>
+  </div>  <!-- Quotation -->  <div id="resultSection" class="hidden">
+    <h2>Quotation</h2>
     <div id="result"></div>
-    <button onclick="window.print()">🖨️ Print</button>
-    <button onclick="goBackToPreview()">← Back</button>
+    <button onclick="window.print()">Print</button>
   </div>
-</div>
-
-<script src="https://js.paystack.co/v1/inline.js"></script>
-<script>
+</div><script>
+  let user = {}, walls = [], wallData = [], currentWall = 0;
   const FEET_TO_METERS = 0.3048;
-  const UNDERCOAT_SPREAD = 9.0, TOPCOAT_SPREAD = 9.0, TOPCOAT_COATS = 2;
-  const SKIM_COAT_NEW = 16.0, SKIM_COAT_RENO = 20.0;
 
-  let wallNames = [], wallData = [], currentWallIndex = 0;
-  let projectType = "", skimming = "", unit = "meters";
-
-  document.querySelectorAll('input[name="project"]').forEach(r => {
-    r.addEventListener('change', () => {
-      document.getElementById('skimmingGroup').classList.remove('hidden');
-    });
+  document.getElementById('projectType').addEventListener('change', e => {
+    document.getElementById('skimmingGroup').classList.remove('hidden');
   });
 
-  function addWallName() {
-    const input = document.getElementById("wallName");
-    const name = input.value.trim();
-    if (!name) return alert("Wall name cannot be empty.");
-    if (wallNames.includes(name)) return alert("Wall name already exists.");
-    wallNames.push(name);
-    renderWallList();
-    input.value = "";
+  function goToPage2() {
+    user.name = document.getElementById('fullName').value.trim();
+    user.email = document.getElementById('email').value.trim();
+    user.project = document.getElementById('projectType').value;
+    user.skimming = document.getElementById('skimming').value;
+
+    if (!user.name || !user.email || !user.project || !user.skimming) return alert("Complete all fields.");
+    document.getElementById('page1').classList.add('hidden');
+    document.getElementById('page2').classList.remove('hidden');
   }
 
-  function renderWallList() {
-    const list = document.getElementById("wallList");
+  function addWall() {
+    const name = document.getElementById('wallName').value.trim();
+    if (!name || walls.includes(name)) return alert("Enter a unique wall name.");
+    walls.push(name);
+    wallData.push({ name });
+    renderWalls();
+    document.getElementById('wallName').value = "";
+  }
+
+  function renderWalls() {
+    const list = document.getElementById('wallList');
     list.innerHTML = "";
-    wallNames.forEach((name, i) => {
-      const li = document.createElement("li");
-      li.innerHTML = `${name}
-        <span>
-          <button onclick="editWall(${i})">✏️</button>
-          <button onclick="removeWall(${i})">🗑️</button>
-        </span>`;
-      list.appendChild(li);
+    walls.forEach((w, i) => {
+      list.innerHTML += `<li>${w} <button onclick="removeWall(${i})">Remove</button></li>`;
     });
   }
 
-  function removeWall(index) {
-    wallNames.splice(index, 1);
-    wallData.splice(index, 1);
-    renderWallList();
+  function removeWall(i) {
+    walls.splice(i, 1);
+    wallData.splice(i, 1);
+    renderWalls();
   }
 
-  function goToPage2() {
-    unit = document.getElementById("unitSelect").value;
-    projectType = document.querySelector("input[name='project']:checked")?.value;
-    skimming = document.querySelector("input[name='skimming']:checked")?.value;
-    if (!unit || !projectType || !skimming || wallNames.length === 0) {
-      alert("Please complete all fields and add at least one wall.");
-      return;
-    }
-    document.getElementById("page1").classList.add("hidden");
-    document.getElementById("page2").classList.remove("hidden");
-    showWallForm();
+  function goToPage3() {
+    if (walls.length === 0) return alert("Add at least one wall.");
+    document.getElementById('page2').classList.add('hidden');
+    document.getElementById('page3').classList.remove('hidden');
+    renderWallDimension();
   }
 
-  function showWallForm() {
-    if (currentWallIndex >= wallNames.length) return;
-    const name = wallNames[currentWallIndex];
-    const unitLabel = unit === "meters" ? "m" : "ft";
-    document.getElementById("wallDimensionForm").innerHTML = `
-      <h3>Enter dimensions for: <span>${name}</span></h3>
-      <label>Length (${unitLabel})</label>
-      <input type="number" id="length" min="0" required>
-      <label>Height (${unitLabel})</label>
-      <input type="number" id="height" min="0" required>
-      <label>Number of Doors</label>
-      <input type="number" id="doorCount" value="0" min="0" onchange="toggleFields('door')">
-      <div id="doorFields" class="hidden">
-        <label>Average Door Width (${unitLabel})</label>
-        <input type="number" id="doorWidth" min="0">
-        <label>Average Door Height (${unitLabel})</label>
-        <input type="number" id="doorHeight" min="0">
-      </div>
-      <label>Number of Windows</label>
-      <input type="number" id="windowCount" value="0" min="0" onchange="toggleFields('window')">
-      <div id="windowFields" class="hidden">
-        <label>Average Window Width (${unitLabel})</label>
-        <input type="number" id="windowWidth" min="0">
-        <label>Average Window Height (${unitLabel})</label>
-        <input type="number" id="windowHeight" min="0">
-      </div>
-      <button onclick="saveWallData()">Add Dimensions</button>
+  function renderWallDimension() {
+    const w = walls[currentWall];
+    const u = document.getElementById('unit').value;
+    const label = u === 'feet' ? 'ft' : 'm';
+    document.getElementById('wallDimensionForm').innerHTML = `
+      <h3>${w}</h3>
+      <label>Length (${label})</label><input type="number" id="length">
+      <label>Height (${label})</label><input type="number" id="height">
+      <label>Doors</label><input type="number" id="doors" value="0">
+      <label>Avg Door Width (${label})</label><input type="number" id="doorW">
+      <label>Avg Door Height (${label})</label><input type="number" id="doorH">
+      <label>Windows</label><input type="number" id="windows" value="0">
+      <label>Avg Window Width (${label})</label><input type="number" id="winW">
+      <label>Avg Window Height (${label})</label><input type="number" id="winH">
+      <button onclick="saveWallDimension()">Save Wall Data</button>
     `;
   }
 
-  function toggleFields(type) {
-    const count = parseInt(document.getElementById(`${type}Count`).value);
-    document.getElementById(`${type}Fields`).classList.toggle("hidden", count === 0);
-  }
+  function saveWallDimension() {
+    const conv = document.getElementById('unit').value === 'feet' ? FEET_TO_METERS : 1;
+    const l = parseFloat(document.getElementById('length').value) * conv;
+    const h = parseFloat(document.getElementById('height').value) * conv;
+    const d = parseInt(document.getElementById('doors').value);
+    const dw = parseFloat(document.getElementById('doorW').value) * conv;
+    const dh = parseFloat(document.getElementById('doorH').value) * conv;
+    const w = parseInt(document.getElementById('windows').value);
+    const ww = parseFloat(document.getElementById('winW').value) * conv;
+    const wh = parseFloat(document.getElementById('winH').value) * conv;
 
-  function saveWallData() {
-    const conv = unit === "feet" ? FEET_TO_METERS : 1;
-    const length = parseFloat(document.getElementById("length").value) * conv;
-    const height = parseFloat(document.getElementById("height").value) * conv;
-    const dCount = parseInt(document.getElementById("doorCount").value) || 0;
-    const dW = dCount > 0 ? parseFloat(document.getElementById("doorWidth").value) * conv : 0;
-    const dH = dCount > 0 ? parseFloat(document.getElementById("doorHeight").value) * conv : 0;
-    const wCount = parseInt(document.getElementById("windowCount").value) || 0;
-    const wW = wCount > 0 ? parseFloat(document.getElementById("windowWidth").value) * conv : 0;
-    const wH = wCount > 0 ? parseFloat(document.getElementById("windowHeight").value) * conv : 0;
-
-    if (dCount > 0 && (!dW || !dH)) return alert("Please enter door dimensions.");
-    if (wCount > 0 && (!wW || !wH)) return alert("Please enter window dimensions.");
-
-    wallData[currentWallIndex] = {
-      name: wallNames[currentWallIndex],
-      length, height, doors: dCount, doorW: dW, doorH: dH,
-      windows: wCount, windowW: wW, windowH: wH
-    };
-
-    currentWallIndex++;
-    if (currentWallIndex < wallNames.length) {
-      showWallForm();
-    } else {
-      showPreviewTable();
+    wallData[currentWall] = { ...wallData[currentWall], length: l, height: h, doors: d, doorW: dw, doorH: dh, windows: w, winW: ww, winH: wh };
+    currentWall++;
+    if (currentWall < walls.length) renderWallDimension();
+    else {
+      document.getElementById('page3').classList.add('hidden');
+      document.getElementById('previewPage').classList.remove('hidden');
+      showPreview();
     }
   }
 
-  function showPreviewTable() {
-    document.getElementById("page2").classList.add("hidden");
-    document.getElementById("previewPage").classList.remove("hidden");
-    const body = document.querySelector("#previewTable tbody");
-    body.innerHTML = "";
-    wallNames.forEach((name, i) => {
-      const w = wallData[i] || {};
-      body.innerHTML += `
-        <tr>
-          <td>${name}</td>
-          <td>${w.length ? w.length.toFixed(2) + " m" : "-"}</td>
-          <td>${w.height ? w.height.toFixed(2) + " m" : "-"}</td>
-          <td>${w.doors || 0}</td>
-          <td>${w.windows || 0}</td>
-          <td>
-            <button onclick="editWall(${i})">Edit</button>
-            <button onclick="deleteWall(${i})">Delete</button>
-          </td>
-        </tr>`;
+  function showPreview() {
+    const body = document.querySelector('#previewTable tbody');
+    body.innerHTML = '';
+    wallData.forEach(w => {
+      body.innerHTML += `<tr><td>${w.name}</td><td>${w.length.toFixed(2)}</td><td>${w.height.toFixed(2)}</td><td>${w.doors}</td><td>${w.windows}</td></tr>`;
     });
   }
 
-  function startPayment() {
-    const email = document.getElementById("userEmail").value.trim();
-    const fullName = document.getElementById("fullName").value.trim();
-    if (!email || !fullName) {
-      alert("Please enter your name and email.");
-      return;
-    }
-
+  function requestQuotation() {
     const handler = PaystackPop.setup({
-      key: 'pk_test_4267eb88afba104984e24dd30e98880042131088', // TEST key
-      email: email,
-      amount: 100 * 100,
+      key: 'pk_test_4267eb88afba104984e24dd30e98880042131088',
+      email: user.email,
+      amount: 10000,
       currency: 'KES',
-      metadata: {
-        custom_fields: [{ display_name: "Full Name", variable_name: "full_name", value: fullName }]
-      },
       callback: function(response) {
-        document.getElementById("previewPage").classList.add("hidden");
-        document.getElementById("resultSection").classList.remove("hidden");
-        calculateResults();
-        alert("Payment successful. Ref: " + response.reference);
+        document.getElementById('previewPage').classList.add('hidden');
+        document.getElementById('resultSection').classList.remove('hidden');
+        generateQuotation();
+        alert('Payment successful: ' + response.reference);
       },
-      onClose: function() {
-        alert("Payment cancelled.");
-      }
+      onClose: function() { alert('Transaction cancelled'); }
     });
-
     handler.openIframe();
   }
 
-  function calculateResults() {
-    let html = `<table><thead>
-      <tr><th>Wall</th><th>Net Area (m²)</th><th>Skim Coat</th><th>Undercoat</th><th>Topcoat</th></tr>
-    </thead><tbody>`;
-
-    let totalArea = 0, totalSkim = 0, totalUndercoat = 0, totalTopcoat = 0;
-
+  function generateQuotation() {
+    let html = '<table><tr><th>Wall</th><th>Area (m²)</th><th>Skim Coat</th><th>Undercoat</th><th>Topcoat</th></tr>';
+    let total = { area: 0, skim: 0, under: 0, top: 0 };
     wallData.forEach(w => {
-      const sub = (w.doors * w.doorW * w.doorH) + (w.windows * w.windowW * w.windowH);
-      const area = (w.length * w.height) - sub;
-
-      const skim = (skimming === "yes")
-        ? (projectType === "new"
-            ? area / SKIM_COAT_NEW
-            : area / SKIM_COAT_RENO)
-        : 0;
-
-      const under = area / UNDERCOAT_SPREAD;
-      const top = (area * TOPCOAT_COATS) / TOPCOAT_SPREAD;
-
-      totalArea += area;
-      totalSkim += skim;
-      totalUndercoat += under;
-      totalTopcoat += top;
-
-      html += `<tr>
-        <td>${w.name}</td>
-        <td>${area.toFixed(2)}</td>
-        <td>${skim > 0 ? skim.toFixed(2) + " bags" : "-"}</td>
-        <td>${under.toFixed(2)} L</td>
-        <td>${top.toFixed(2)} L</td>
-      </tr>`;
+      const area = w.length * w.height - (w.doors * w.doorW * w.doorH + w.windows * w.winW * w.winH);
+      const skim = user.skimming === 'yes' ? area / (user.project === 'new' ? 16 : 20) : 0;
+      const under = area / 9;
+      const top = (area * 2) / 9;
+      total.area += area; total.skim += skim; total.under += under; total.top += top;
+      html += `<tr><td>${w.name}</td><td>${area.toFixed(2)}</td><td>${skim.toFixed(2)} bags</td><td>${under.toFixed(2)}L</td><td>${top.toFixed(2)}L</td></tr>`;
     });
-
-    html += `</tbody><tfoot>
-      <tr><th>Total</th>
-      <th>${totalArea.toFixed(2)}</th>
-      <th>${totalSkim > 0 ? totalSkim.toFixed(2) + " bags" : "-"}</th>
-      <th>${totalUndercoat.toFixed(2)} L</th>
-      <th>${totalTopcoat.toFixed(2)} L</th></tr>
-    </tfoot></table>`;
-
-    document.getElementById("result").innerHTML = html;
+    html += `<tr><th>Total</th><th>${total.area.toFixed(2)}</th><th>${total.skim.toFixed(2)} bags</th><th>${total.under.toFixed(2)}L</th><th>${total.top.toFixed(2)}L</th></tr></table>`;
+    document.getElementById('result').innerHTML = html;
   }
-
-  function goBackToPage1() {
-    document.getElementById("page2").classList.add("hidden");
-    document.getElementById("page1").classList.remove("hidden");
-  }
-
-  function goBackToPage2() {
-    document.getElementById("previewPage").classList.add("hidden");
-    document.getElementById("page2").classList.remove("hidden");
-  }
-
-  function goBackToPreview() {
-    document.getElementById("resultSection").classList.add("hidden");
-    document.getElementById("previewPage").classList.remove("hidden");
-  }
-</script>
-</body>
+</script></body>
 </html>
