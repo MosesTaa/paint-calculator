@@ -1,29 +1,169 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Test Paystack</title>
-  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Standard Paint Estimator</title>
+  <style>
+    body {
+      background: #121212;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      width: 95%;
+      max-width: 750px;
+      padding: 20px;
+      margin-top: 20px;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 10px;
+    }
+    h2, h3 {
+      text-align: center;
+    }
+    h3 span {
+      color: #00ff66;
+    }
+    input, select, button, textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 6px 0 12px 0;
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid #444;
+      box-sizing: border-box;
+      font-size: 16px;
+      border-radius: 4px;
+    }
+    input:focus, select:focus, textarea:focus, button:focus {
+      outline: none;
+      border: 2px solid #00ff66;
+      box-shadow: 0 0 5px #00ff66;
+    }
+    input[type="radio"] {
+      width: auto;
+      margin-right: 10px;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
+    }
+    table {
+      width: 100%;
+      margin-top: 10px;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #555;
+      padding: 8px;
+      text-align: center;
+    }
+    .hidden {
+      display: none;
+    }
+    @media print {
+      button, .container > div:not(#resultSection) {
+        display: none;
+      }
+    }
+    @media (max-width: 600px) {
+      .container {
+        padding: 10px;
+      }
+      th, td {
+        font-size: 12px;
+      }
+      button {
+        font-size: 14px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h2>Test Paystack</h2>
-  <button onclick="payWithPaystack()">Pay Now</button>
+<div class="container">
+  <div id="previewPage">
+    <h2>Wall Input Summary</h2>
+    <table id="previewTable">
+      <thead>
+        <tr>
+          <th>Wall</th>
+          <th>Length</th>
+          <th>Height</th>
+          <th>Doors</th>
+          <th>Windows</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Sample Wall</td>
+          <td>4.00 m</td>
+          <td>3.00 m</td>
+          <td>1</td>
+          <td>2</td>
+          <td>–</td>
+        </tr>
+      </tbody>
+    </table>
 
-  <script>
-    function payWithPaystack() {
-      var handler = PaystackPop.setup({
-        key: 'pk_test_4267eb88afba104984e24dd30e98880042131088',
-        email: 'test@example.com',
-        amount: 10000, // 100 KES
-        currency: 'KES',
-        callback: function(response){
-          alert('Success. Ref: ' + response.reference);
-        },
-        onClose: function(){
-          alert('Window closed');
-        }
-      });
-      handler.openIframe();
+    <label>Full Name</label>
+    <input type="text" id="fullName" placeholder="Enter your name">
+
+    <label>Email Address</label>
+    <input type="email" id="userEmail" placeholder="Enter your email">
+
+    <p><strong>Payment Amount:</strong> KES 100</p>
+
+    <button onclick="goToQuotation()">Pay and Get Quotation</button>
+  </div>
+
+  <div id="resultSection" class="hidden">
+    <h2>Paint Estimation Report</h2>
+    <div id="result">
+      <p><strong>This is your generated quotation after payment.</strong></p>
+      <!-- In a full app, insert your results from calculations here -->
+    </div>
+    <button onclick="window.print()">🖨️ Print</button>
+  </div>
+</div>
+
+<!-- Paystack Script -->
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script>
+  function goToQuotation() {
+    const amountKES = 100;
+    const email = document.getElementById("userEmail").value.trim();
+    const fullName = document.getElementById("fullName").value.trim();
+
+    if (!fullName || !email) {
+      alert("Please enter your name and email.");
+      return;
     }
-  </script>
+
+    var handler = PaystackPop.setup({
+      key: 'pk_test_4267eb88afba104984e24dd30e98880042131088',
+      email: email,
+      amount: amountKES * 100,
+      currency: 'KES',
+      channels: ['mobile_money'],
+      callback: function(response) {
+        document.getElementById("previewPage").classList.add("hidden");
+        document.getElementById("resultSection").classList.remove("hidden");
+        alert('Payment Successful! Ref: ' + response.reference);
+      },
+      onClose: function() {
+        alert('Transaction cancelled.');
+      }
+    });
+
+    handler.openIframe();
+  }
+</script>
 </body>
 </html>
